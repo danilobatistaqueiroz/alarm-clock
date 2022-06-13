@@ -13,6 +13,7 @@ import threading
 from datetime import timedelta
 from threading import *
 import time
+from notifypy import Notify
 
 customtkinter.set_appearance_mode("dark")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
@@ -60,6 +61,7 @@ alarms = []
 alarms_names = []
 stop_threads = False
 all_threads = []
+icon = None
 
 def clean_alarms():
   global items
@@ -87,19 +89,25 @@ def set_alarm():
   if len(alarms) == 3:
     bt_set_alarm.configure(state=tk.DISABLED)
   threading.Thread(target=playsound, args=('mixkit-gaming-lock-2848.wav',), daemon=True).start()
-  global items
-  items.append(pystray.MenuItem(text,None))
   set_now()
   add_label(text)
   Threading(text)
 
+def show_notify(description):
+    notification = Notify()
+    notification.title = "Alarm"
+    notification.message = description
+    notification.icon = "alarm4.png"
+    notification.audio = "mixkit-gaming-lock-2848.wav"
+    notification.send()
+
 def Threading(text_time):
-    t1=Thread(target=new_alarm, args=(text_time,))
+    t1=Thread(target=new_alarm, args=(text_time,show_notify))
     t1.daemon = True
     t1.start()
     all_threads.append(t1)
 
-def new_alarm(text_time):
+def new_alarm(text_time,show_notify):
     now = datetime.datetime.now()
     hour = datetime.datetime.strptime(text_time, '%H:%M:%S').hour
     minute = datetime.datetime.strptime(text_time, '%H:%M:%S').minute
@@ -120,7 +128,7 @@ def new_alarm(text_time):
               if alarm.text[:8] == text_time:
                 alarm.config(fg="gray")
                 description = alarm.text[12:]
-            messagebox.showwarning("alarm", description)
+            show_notify(description)
             break
 
 def labelText(e):
@@ -132,6 +140,8 @@ def add_label(text_time):
   if dialog_input is None:
     dialog_input = ''
   description = text_time+'    '+dialog_input[:25]
+  global items
+  items.append(pystray.MenuItem(description,None))
   label = customtkinter.CTkLabel(root,bg_color=None,text_color="black",text_font=("Helvetica 12 bold"),width=10,anchor='w',text=description)
   label.pack(side=tk.LEFT, fill=tk.BOTH)
   pos = 0.4+(len(alarms)/10)
@@ -154,6 +164,7 @@ def quit_window(icon, item):
 
 def hide_window():
   global items
+  global icon
   if len(items) == 0:
     sys.exit()
   else:
